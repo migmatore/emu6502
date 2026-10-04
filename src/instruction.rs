@@ -1,18 +1,18 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Mnemonic {
     Lda,
     Sta,
     Nop,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum AddrMode {
     Implied,
     Immediate,
     Absolute,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Instruction {
     pub op: Mnemonic,
     pub mode: AddrMode,
@@ -21,7 +21,7 @@ pub struct Instruction {
 impl TryFrom<u8> for Instruction {
     type Error = u8;
 
-    fn try_from(byte: u8) -> Result<Instruction, u8> {
+    fn try_from(byte: u8) -> Result<Instruction, Self::Error> {
         let (op, mode) = match byte {
             0xA9 => (Mnemonic::Lda, AddrMode::Immediate),
             0x8D => (Mnemonic::Sta, AddrMode::Absolute),

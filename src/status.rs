@@ -80,3 +80,19 @@ impl fmt::Display for StatusFlags {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_and_clear_flag() {
+        let mut f = StatusFlags::default();
+
+        f.set(StatusFlags::NEGATIVE, true);
+        assert!(f.contains(StatusFlags::NEGATIVE));
+
+        f.set(StatusFlags::NEGATIVE, false);
+        assert!(!f.contains(StatusFlags::NEGATIVE));
+    }
+}
