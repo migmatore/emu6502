@@ -4,6 +4,8 @@ use std::fmt;
 pub struct StatusFlags(u8);
 
 impl StatusFlags {
+    const SIGN_BIT: u8 = 0x80;
+
     pub const CARRY: Self = Self(1 << 0);
     pub const ZERO: Self = Self(1 << 1);
     pub const INTERRUPTED: Self = Self(1 << 2);
@@ -27,6 +29,11 @@ impl StatusFlags {
         } else {
             *self &= !other;
         }
+    }
+
+    pub fn update_zn(&mut self, value: u8) {
+        self.set(Self::ZERO, value == 0);
+        self.set(Self::NEGATIVE, (value & Self::SIGN_BIT) != 0);
     }
 }
 

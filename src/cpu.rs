@@ -17,20 +17,20 @@ impl Cpu {
         Self::default()
     }
 
-    pub fn reset<B: Bus>(&mut self, bus: &mut B) {
+    pub fn reset(&mut self, bus: &mut impl Bus) {
         let lo = bus.read(0xFFFC);
         let hi = bus.read(0xFFFD);
 
         self.pc = u16::from_le_bytes([lo, hi]);
     }
 
-    pub fn run<B: Bus>(&mut self, bus: &mut B) {
+    pub fn run(&mut self, bus: &mut impl Bus) {
         loop {
             self.step(bus)
         }
     }
 
-    fn step<B: Bus>(&mut self, bus: &mut B) {
+    fn step(&mut self, bus: &mut impl Bus) {
         let byte = self.fetch(bus);
         let instr = match Instruction::try_from(byte) {
             Ok(instr) => instr,
@@ -44,7 +44,21 @@ impl Cpu {
         match (instr.op, instr.mode) {
             (Mnemonic::Lda, AddrMode::Immediate) => {
                 let data = self.fetch(bus);
+
                 self.a = data;
+                self.p.update_zn(data);
+            }
+            (Mnemonic::Ldx, AddrMode::Immediate) => {
+                let data = self.fetch(bus);
+
+                self.x = data;
+                self.p.update_zn(data);
+            }
+            (Mnemonic::Ldy, AddrMode::Immediate) => {
+                let data = self.fetch(bus);
+
+                self.y = data;
+                self.p.update_zn(data);
             }
             (Mnemonic::Sta, AddrMode::Absolute) => {
                 let lo = self.fetch(bus);
@@ -52,12 +66,24 @@ impl Cpu {
 
                 bus.write(u16::from_le_bytes([lo, hi]), self.a);
             }
+            (Mnemonic::Stx, AddrMode::Absolute) => {
+                let lo = self.fetch(bus);
+                let hi = self.fetch(bus);
+
+                bus.write(u16::from_le_bytes([lo, hi]), self.x);
+            }
+            (Mnemonic::Sty, AddrMode::Absolute) => {
+                let lo = self.fetch(bus);
+                let hi = self.fetch(bus);
+
+                bus.write(u16::from_le_bytes([lo, hi]), self.y);
+            }
             (Mnemonic::Nop, AddrMode::Implied) => {}
             _ => todo!("unimplemented instruction {:?}", instr),
         }
     }
 
-    fn fetch<B: Bus>(&mut self, bus: &mut B) -> u8 {
+    fn fetch(&mut self, bus: &mut impl Bus) -> u8 {
         let byte = bus.read(self.pc);
         self.pc = self.pc.wrapping_add(1);
         byte
