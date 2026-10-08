@@ -1,3 +1,29 @@
+use crate::bus::Bus;
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Operand {
+    None,
+    Value(u8),
+    Address(u16),
+}
+
+impl Operand {
+    pub fn value(self, bus: &mut impl Bus) -> u8 {
+        match self {
+            Operand::None => unreachable!("instruction needs a value, got {:?}", self),
+            Operand::Value(v) => v,
+            Operand::Address(addr) => bus.read(addr),
+        }
+    }
+
+    pub fn address(self) -> u16 {
+        match self {
+            Operand::Address(addr) => addr,
+            _ => unreachable!("instruction needs an address, got {:?}", self),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum Mnemonic {
     Lda,
@@ -29,10 +55,19 @@ impl TryFrom<u8> for Instruction {
     fn try_from(byte: u8) -> Result<Instruction, Self::Error> {
         let (op, mode) = match byte {
             0xA9 => (Mnemonic::Lda, AddrMode::Immediate),
+            0xA5 => (Mnemonic::Lda, AddrMode::ZeroPage),
+            0xAD => (Mnemonic::Lda, AddrMode::Absolute),
             0xA2 => (Mnemonic::Ldx, AddrMode::Immediate),
+            0xA6 => (Mnemonic::Ldx, AddrMode::ZeroPage),
+            0xAE => (Mnemonic::Ldx, AddrMode::Absolute),
             0xA0 => (Mnemonic::Ldy, AddrMode::Immediate),
+            0xA4 => (Mnemonic::Ldy, AddrMode::ZeroPage),
+            0xAC => (Mnemonic::Ldy, AddrMode::Absolute),
+            0x85 => (Mnemonic::Sta, AddrMode::ZeroPage),
             0x8D => (Mnemonic::Sta, AddrMode::Absolute),
+            0x86 => (Mnemonic::Stx, AddrMode::ZeroPage),
             0x8E => (Mnemonic::Stx, AddrMode::Absolute),
+            0x84 => (Mnemonic::Sty, AddrMode::ZeroPage),
             0x8C => (Mnemonic::Sty, AddrMode::Absolute),
             0xEA => (Mnemonic::Nop, AddrMode::Implied),
             _ => return Err(byte),
