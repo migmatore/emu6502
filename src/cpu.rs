@@ -232,6 +232,7 @@ mod tests {
         let cases = [
             (0b0000_0000, true, false),
             (0b0000_0001, false, false),
+            (0b0100_0000, false, false),
             (0b1000_0000, false, true),
             (0b1111_1111, false, true),
         ];
