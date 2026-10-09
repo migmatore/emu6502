@@ -41,6 +41,8 @@ pub enum AddrMode {
     Immediate,
     Absolute,
     ZeroPage,
+    ZeroPageX,
+    ZeroPageY,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -56,12 +58,15 @@ impl TryFrom<u8> for Instruction {
         let (op, mode) = match byte {
             0xA9 => (Mnemonic::Lda, AddrMode::Immediate),
             0xA5 => (Mnemonic::Lda, AddrMode::ZeroPage),
+            0xB5 => (Mnemonic::Lda, AddrMode::ZeroPageX),
             0xAD => (Mnemonic::Lda, AddrMode::Absolute),
             0xA2 => (Mnemonic::Ldx, AddrMode::Immediate),
             0xA6 => (Mnemonic::Ldx, AddrMode::ZeroPage),
+            0xB6 => (Mnemonic::Ldx, AddrMode::ZeroPageY),
             0xAE => (Mnemonic::Ldx, AddrMode::Absolute),
             0xA0 => (Mnemonic::Ldy, AddrMode::Immediate),
             0xA4 => (Mnemonic::Ldy, AddrMode::ZeroPage),
+            0xB4 => (Mnemonic::Ldy, AddrMode::ZeroPageX),
             0xAC => (Mnemonic::Ldy, AddrMode::Absolute),
             0x85 => (Mnemonic::Sta, AddrMode::ZeroPage),
             0x8D => (Mnemonic::Sta, AddrMode::Absolute),

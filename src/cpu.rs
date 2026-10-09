@@ -86,7 +86,15 @@ impl Cpu {
                 // ZeroPage from 0x0000 to 0x00FF
                 Operand::Address(u16::from(lo))
             }
+            AddrMode::ZeroPageX => self.zero_page_indexed(bus, self.x),
+            AddrMode::ZeroPageY => self.zero_page_indexed(bus, self.y),
         }
+    }
+
+    fn zero_page_indexed(&mut self, bus: &mut impl Bus, index: u8) -> Operand {
+        let lo = self.fetch(bus);
+
+        Operand::Address(u16::from(lo.wrapping_add(index)))
     }
 
     fn load(&mut self, bus: &mut impl Bus, reg: Register, operand: Operand) {
@@ -227,6 +235,21 @@ mod tests {
     }
 
     #[test]
+    fn lda_zero_page_x_loads_a() {
+        // zero page addr, X, expected addr
+        let cases = [(0x30, 0x00, 0x30), (0xFF, 0x02, 0x01), (0x01, 0xFF, 0x00)];
+
+        for (addr, x, expected_addr) in cases {
+            let (mut cpu, mut bus) = setup(&[0xB5, addr]); // LDA $addr,X
+            cpu.x = x;
+            bus.mem[expected_addr as usize] = 0x05;
+            cpu.step(&mut bus);
+            assert_eq!(cpu.pc, 0x0202);
+            assert_eq!(cpu.a, 0x05, "addr {addr:#04X} + x {x:#04X}");
+        }
+    }
+
+    #[test]
     fn lda_check_zn_flags() {
         // val, Zero flag, Negative flag
         let cases = [
@@ -252,6 +275,21 @@ mod tests {
                 negative,
                 "value {val:#010b} < 0"
             );
+        }
+    }
+
+    #[test]
+    fn ldx_zero_page_y_loads_x() {
+        // zero page addr, Y, expected addr
+        let cases = [(0x30, 0x00, 0x30), (0xFF, 0x02, 0x01), (0x01, 0xFF, 0x00)];
+
+        for (addr, y, expected_addr) in cases {
+            let (mut cpu, mut bus) = setup(&[0xB6, addr]); // LDX $addr,Y
+            cpu.y = y;
+            bus.mem[expected_addr as usize] = 0x05;
+            cpu.step(&mut bus);
+            assert_eq!(cpu.pc, 0x0202);
+            assert_eq!(cpu.x, 0x05, "addr {addr:#04X} + y {y:#04X}");
         }
     }
 }
