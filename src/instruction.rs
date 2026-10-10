@@ -39,10 +39,12 @@ pub enum Mnemonic {
 pub enum AddrMode {
     Implied,
     Immediate,
-    Absolute,
     ZeroPage,
     ZeroPageX,
     ZeroPageY,
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -60,6 +62,8 @@ impl TryFrom<u8> for Instruction {
             0xA5 => (Mnemonic::Lda, AddrMode::ZeroPage),
             0xB5 => (Mnemonic::Lda, AddrMode::ZeroPageX),
             0xAD => (Mnemonic::Lda, AddrMode::Absolute),
+            0xBD => (Mnemonic::Lda, AddrMode::AbsoluteX),
+            0xB9 => (Mnemonic::Lda, AddrMode::AbsoluteY),
             0xA2 => (Mnemonic::Ldx, AddrMode::Immediate),
             0xA6 => (Mnemonic::Ldx, AddrMode::ZeroPage),
             0xB6 => (Mnemonic::Ldx, AddrMode::ZeroPageY),

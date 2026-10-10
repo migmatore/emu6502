@@ -75,12 +75,6 @@ impl Cpu {
 
                 Operand::Value(data)
             }
-            AddrMode::Absolute => {
-                let lo = self.fetch(bus);
-                let hi = self.fetch(bus);
-
-                Operand::Address(u16::from_le_bytes([lo, hi]))
-            }
             AddrMode::ZeroPage => {
                 let lo = self.fetch(bus);
                 // ZeroPage from 0x0000 to 0x00FF
@@ -88,6 +82,14 @@ impl Cpu {
             }
             AddrMode::ZeroPageX => self.zero_page_indexed(bus, self.x),
             AddrMode::ZeroPageY => self.zero_page_indexed(bus, self.y),
+            AddrMode::Absolute => {
+                let lo = self.fetch(bus);
+                let hi = self.fetch(bus);
+
+                Operand::Address(u16::from_le_bytes([lo, hi]))
+            }
+            AddrMode::AbsoluteX => self.absolute_indexed(bus, self.x),
+            AddrMode::AbsoluteY => self.absolute_indexed(bus, self.y),
         }
     }
 
@@ -95,6 +97,13 @@ impl Cpu {
         let lo = self.fetch(bus);
 
         Operand::Address(u16::from(lo.wrapping_add(index)))
+    }
+
+    fn absolute_indexed(&mut self, bus: &mut impl Bus, index: u8) -> Operand {
+        let lo = self.fetch(bus);
+        let hi = self.fetch(bus);
+
+        Operand::Address(u16::from_le_bytes([lo, hi]).wrapping_add(u16::from(index)))
     }
 
     fn load(&mut self, bus: &mut impl Bus, reg: Register, operand: Operand) {
@@ -237,7 +246,13 @@ mod tests {
     #[test]
     fn lda_zero_page_x_loads_a() {
         // zero page addr, X, expected addr
-        let cases = [(0x30, 0x00, 0x30), (0xFF, 0x02, 0x01), (0x01, 0xFF, 0x00)];
+        let cases = [
+            (0x30, 0x00, 0x30),
+            (0xFF, 0x02, 0x01),
+            (0x01, 0xFF, 0x00),
+            (0x10, 0xFF, 0x0F),
+            (0x00, 0xFF, 0xFF),
+        ];
 
         for (addr, x, expected_addr) in cases {
             let (mut cpu, mut bus) = setup(&[0xB5, addr]); // LDA $addr,X
@@ -246,6 +261,54 @@ mod tests {
             cpu.step(&mut bus);
             assert_eq!(cpu.pc, 0x0202);
             assert_eq!(cpu.a, 0x05, "addr {addr:#04X} + x {x:#04X}");
+        }
+    }
+
+    #[test]
+    fn lda_absolute_x_loads_a() {
+        // absolute addr, X, expected addr
+        let cases: [(u16, u8, u16); 8] = [
+            (0x0030, 0x00, 0x0030),
+            (0x00FF, 0x02, 0x0101),
+            (0x0001, 0xFF, 0x0100),
+            (0x0010, 0xFF, 0x010F),
+            (0x0000, 0xFF, 0x00FF),
+            (0xFFF0, 0x20, 0x0010),
+            (0xFFFF, 0x00, 0xFFFF),
+            (0xFFFF, 0x01, 0x0000),
+        ];
+
+        for (addr, x, expected_addr) in cases {
+            let [lo, hi] = addr.to_le_bytes();
+            let (mut cpu, mut bus) = setup(&[0xBD, lo, hi]); // LDA $addr,X
+            cpu.x = x;
+            bus.mem[expected_addr as usize] = 0x05;
+            cpu.step(&mut bus);
+            assert_eq!(cpu.pc, 0x0203);
+            assert_eq!(cpu.a, 0x05, "addr {addr:#06X} + x {x:#04X}");
+        }
+    }
+
+    #[test]
+    fn lda_absolute_y_loads_a() {
+        // absolute addr, Y, expected addr
+        let cases: [(u16, u8, u16); 6] = [
+            (0x0030, 0x00, 0x0030),
+            (0x00FF, 0x02, 0x0101),
+            (0x0001, 0xFF, 0x0100),
+            (0x0010, 0xFF, 0x010F),
+            (0x0000, 0xFF, 0x00FF),
+            (0xFFF0, 0x20, 0x0010),
+        ];
+
+        for (addr, y, expected_addr) in cases {
+            let [lo, hi] = addr.to_le_bytes();
+            let (mut cpu, mut bus) = setup(&[0xB9, lo, hi]); // LDA $addr,X
+            cpu.y = y;
+            bus.mem[expected_addr as usize] = 0x05;
+            cpu.step(&mut bus);
+            assert_eq!(cpu.pc, 0x0203);
+            assert_eq!(cpu.a, 0x05, "addr {addr:#06X} + y {y:#04X}");
         }
     }
 
@@ -281,7 +344,13 @@ mod tests {
     #[test]
     fn ldx_zero_page_y_loads_x() {
         // zero page addr, Y, expected addr
-        let cases = [(0x30, 0x00, 0x30), (0xFF, 0x02, 0x01), (0x01, 0xFF, 0x00)];
+        let cases = [
+            (0x30, 0x00, 0x30),
+            (0xFF, 0x02, 0x01),
+            (0x01, 0xFF, 0x00),
+            (0x10, 0xFF, 0x0F),
+            (0x00, 0xFF, 0xFF),
+        ];
 
         for (addr, y, expected_addr) in cases {
             let (mut cpu, mut bus) = setup(&[0xB6, addr]); // LDX $addr,Y
